@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>METGLASS — Calculator Prețuri PVC</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; height: 100vh; display: flex; justify-content: center; align-items: center; }
+
+.chat-container {
+    width: 420px; height: 640px; background: white; border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12); display: flex; flex-direction: column; overflow: hidden;
+}
+
+.chat-header {
+    background: #1a5276; color: white; padding: 16px 20px;
+    display: flex; align-items: center; gap: 12px;
+}
+.chat-header .avatar {
+    width: 40px; height: 40px; background: #2e86c1; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.chat-header h3 { font-size: 16px; font-weight: 600; }
+.chat-header p { font-size: 12px; opacity: 0.8; }
+
+.chat-messages {
+    flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+}
+
+.msg {
+    max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5;
+    word-wrap: break-word; white-space: pre-wrap;
+}
+.msg.bot {
+    background: #eef2f7; color: #1a1a1a; align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+.msg.user {
+    background: #1a5276; color: white; align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+.msg.typing { color: #888; font-style: italic; }
+
+.chat-input {
+    padding: 12px 16px; border-top: 1px solid #eee; display: flex; gap: 8px;
+}
+.chat-input input {
+    flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 24px;
+    font-size: 14px; outline: none; transition: border 0.2s;
+}
+.chat-input input:focus { border-color: #1a5276; }
+.chat-input button {
+    background: #1a5276; color: white; border: none; border-radius: 50%;
+    width: 40px; height: 40px; cursor: pointer; font-size: 18px; transition: background 0.2s;
+}
+.chat-input button:hover { background: #2e86c1; }
+.chat-input button:disabled { background: #ccc; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="avatar">🪟</div>
+        <div>
+            <h3>SEPTO — METGLASS</h3>
+            <p>Calculator prețuri ferestre și uși PVC</p>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="messages">
+        <div class="msg bot">Bună ziua! Mă numesc SEPTO și sunt asistentul virtual METGLASS. 🪟
+
+Vă pot ajuta să calculați rapid un preț orientativ pentru ferestre sau uși PVC.
+
+Doriți să configurăm împreună un produs, sau aveți o întrebare specifică?</div>
+    </div>
+
+    <div class="chat-input">
+        <input type="text" id="userInput" placeholder="Scrieți mesajul dvs..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button onclick="sendMessage()" id="sendBtn">➤</button>
+    </div>
+</div>
+
+<script>
+// Istoricul conversatiei (trimis la fiecare request)
+let history = [];
+
+// Mesajul initial al botului e deja in istoric
+history.push({
+    role: "assistant",
+    content: "Bună ziua! Mă numesc SEPTO și sunt asistentul virtual METGLASS. 🪟\n\nVă pot ajuta să calculați rapid un preț orientativ pentru ferestre sau uși PVC.\n\nDoriți să configurăm împreună un produs, sau aveți o întrebare specifică?"
+});
+
+async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Afiseaza mesajul utilizatorului
+    addMessage(text, 'user');
+    input.value = '';
+
+    // Dezactiveaza butonul cat timp asteapta
+    document.getElementById('sendBtn').disabled = true;
+
+    // Afiseaza "typing..."
+    const typingEl = addMessage('SEPTO scrie...', 'bot typing');
+
+    try {
+        const response = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: text,
+                history: history
+            })
+        });
+
+        const data = await response.json();
+
+        // Sterge "typing"
+        typingEl.remove();
+
+        // Afiseaza raspunsul
+        addMessage(data.response, 'bot');
+
+        // Actualizeaza istoricul
+        history.push({ role: "user", content: text });
+        history.push({ role: "assistant", content: data.response });
+
+        // Limiteaza istoricul la ultimele 20 mesaje (economie de tokeni)
+        if (history.length > 20) {
+            history = history.slice(-20);
+        }
+
+    } catch (error) {
+        typingEl.remove();
+        addMessage('Eroare de conexiune. Verificați că serverul rulează.', 'bot');
+    }
+
+    document.getElementById('sendBtn').disabled = false;
+}
+
+function addMessage(text, type) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + type;
+    div.textContent = text;
+    document.getElementById('messages').appendChild(div);
+    document.getElementById('messages').scrollTop = 99999;
+    return div;
+}
+</script>
+
+</body>
+</html>
