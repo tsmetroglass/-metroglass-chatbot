@@ -3,141 +3,441 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>METGLASS — Calculator Prețuri PVC</title>
+<title>METROGLASS — Calculator Prețuri PVC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+:root {
+    --mg-primary: #0f4c75;
+    --mg-primary-dark: #0b3954;
+    --mg-primary-light: #3282b8;
+    --mg-accent: #00b4d8;
+    --mg-bg: #f8f9fb;
+    --mg-white: #ffffff;
+    --mg-text: #1a2332;
+    --mg-text-light: #5a6a7e;
+    --mg-border: #e2e8f0;
+    --mg-bot-bubble: #f0f4f8;
+    --mg-user-bubble: #0f4c75;
+    --mg-shadow: 0 12px 40px rgba(15,76,117,0.18);
+    --mg-radius: 16px;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; height: 100vh; display: flex; justify-content: center; align-items: center; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #eef1f5; }
 
-.chat-container {
-    width: 420px; height: 640px; background: white; border-radius: 16px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.12); display: flex; flex-direction: column; overflow: hidden;
-}
-
-.chat-header {
-    background: #1a5276; color: white; padding: 16px 20px;
-    display: flex; align-items: center; gap: 12px;
-}
-.chat-header .avatar {
-    width: 40px; height: 40px; background: #2e86c1; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; font-size: 18px;
-}
-.chat-header h3 { font-size: 16px; font-weight: 600; }
-.chat-header p { font-size: 12px; opacity: 0.8; }
-
-.chat-messages {
-    flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+/* ====== WIDGET CONTAINER ====== */
+#mg-chat-widget {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    font-family: 'Inter', -apple-system, sans-serif;
 }
 
-.msg {
-    max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5;
-    word-wrap: break-word; white-space: pre-wrap;
+/* ====== FLOATING BUTTON ====== */
+#mg-chat-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--mg-primary) 0%, var(--mg-primary-light) 100%);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(15,76,117,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
-.msg.bot {
-    background: #eef2f7; color: #1a1a1a; align-self: flex-start;
+#mg-chat-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 32px rgba(15,76,117,0.45);
+}
+#mg-chat-btn svg { transition: all 0.3s ease; }
+#mg-chat-btn.open .icon-chat { opacity: 0; transform: rotate(90deg) scale(0); }
+#mg-chat-btn.open .icon-close { opacity: 1; transform: rotate(0) scale(1); }
+#mg-chat-btn .icon-close { position: absolute; opacity: 0; transform: rotate(-90deg) scale(0); transition: all 0.3s ease; }
+
+/* Pulse animation on button */
+#mg-chat-btn::before {
+    content: '';
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--mg-primary-light);
+    animation: pulse 2.5s ease-out infinite;
+    z-index: -1;
+}
+#mg-chat-btn.open::before { animation: none; }
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.4; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Notification badge */
+.badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid white;
+    font-size: 11px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+#mg-chat-btn.open .badge { display: none; }
+
+/* ====== CHAT PANEL ====== */
+#mg-chat-panel {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 400px;
+    height: 580px;
+    background: var(--mg-white);
+    border-radius: var(--mg-radius);
+    box-shadow: var(--mg-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: bottom right;
+}
+#mg-chat-panel.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+}
+
+/* ====== HEADER ====== */
+.mg-header {
+    background: linear-gradient(135deg, var(--mg-primary-dark) 0%, var(--mg-primary) 50%, var(--mg-primary-light) 100%);
+    color: white;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+}
+.mg-avatar {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    backdrop-filter: blur(8px);
+}
+.mg-header-text h3 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.mg-header-text p {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+.mg-online {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.mg-online::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background: #34d399;
+    border-radius: 50%;
+    display: inline-block;
+    animation: blink 2s ease infinite;
+}
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ====== MESSAGES AREA ====== */
+.mg-messages {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--mg-bg);
+}
+.mg-messages::-webkit-scrollbar { width: 4px; }
+.mg-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* ====== MESSAGE BUBBLES ====== */
+.mg-msg {
+    max-width: 82%;
+    padding: 11px 15px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    border-radius: 14px;
+    animation: msgIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+@keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mg-msg.bot {
+    background: var(--mg-white);
+    color: var(--mg-text);
+    align-self: flex-start;
+    border: 1px solid var(--mg-border);
     border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.msg.user {
-    background: #1a5276; color: white; align-self: flex-end;
+.mg-msg.user {
+    background: linear-gradient(135deg, var(--mg-primary), var(--mg-primary-light));
+    color: white;
+    align-self: flex-end;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(15,76,117,0.2);
 }
-.msg.typing { color: #888; font-style: italic; }
 
-.chat-input {
-    padding: 12px 16px; border-top: 1px solid #eee; display: flex; gap: 8px;
+/* ====== TYPING INDICATOR ====== */
+.mg-typing {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 18px;
+    background: var(--mg-white);
+    border: 1px solid var(--mg-border);
+    border-radius: 14px;
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+    animation: msgIn 0.3s ease forwards;
 }
-.chat-input input {
-    flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 24px;
-    font-size: 14px; outline: none; transition: border 0.2s;
+.mg-typing span {
+    width: 7px;
+    height: 7px;
+    background: #94a3b8;
+    border-radius: 50%;
+    animation: bounce 1.4s ease-in-out infinite;
 }
-.chat-input input:focus { border-color: #1a5276; }
-.chat-input button {
-    background: #1a5276; color: white; border: none; border-radius: 50%;
-    width: 40px; height: 40px; cursor: pointer; font-size: 18px; transition: background 0.2s;
+.mg-typing span:nth-child(2) { animation-delay: 0.2s; }
+.mg-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
 }
-.chat-input button:hover { background: #2e86c1; }
-.chat-input button:disabled { background: #ccc; cursor: not-allowed; }
+
+/* ====== QUICK ACTIONS ====== */
+.mg-quick-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-self: flex-start;
+    animation: msgIn 0.4s ease forwards;
+    opacity: 0;
+    animation-delay: 0.5s;
+}
+.mg-quick-btn {
+    padding: 7px 14px;
+    border: 1.5px solid var(--mg-primary-light);
+    background: white;
+    color: var(--mg-primary);
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+.mg-quick-btn:hover {
+    background: var(--mg-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* ====== INPUT AREA ====== */
+.mg-input-area {
+    padding: 14px 16px;
+    border-top: 1px solid var(--mg-border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: white;
+    flex-shrink: 0;
+}
+.mg-input-area input {
+    flex: 1;
+    padding: 11px 16px;
+    border: 1.5px solid var(--mg-border);
+    border-radius: 24px;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border 0.2s, box-shadow 0.2s;
+    color: var(--mg-text);
+}
+.mg-input-area input:focus {
+    border-color: var(--mg-primary-light);
+    box-shadow: 0 0 0 3px rgba(50,130,184,0.1);
+}
+.mg-input-area input::placeholder { color: #a0aec0; }
+
+.mg-send-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--mg-primary), var(--mg-primary-light));
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.mg-send-btn:hover { transform: scale(1.06); box-shadow: 0 4px 12px rgba(15,76,117,0.3); }
+.mg-send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ====== FOOTER ====== */
+.mg-footer {
+    padding: 8px;
+    text-align: center;
+    font-size: 10.5px;
+    color: #94a3b8;
+    background: white;
+    flex-shrink: 0;
+}
+
+/* ====== MOBILE ====== */
+@media (max-width: 480px) {
+    #mg-chat-panel {
+        width: calc(100vw - 16px);
+        height: calc(100vh - 100px);
+        bottom: 76px;
+        right: -16px;
+        border-radius: 16px 16px 0 0;
+    }
+}
 </style>
 </head>
 <body>
 
-<div class="chat-container">
-    <div class="chat-header">
-        <div class="avatar">🪟</div>
-        <div>
-            <h3>SEPTO — METGLASS</h3>
-            <p>Calculator prețuri ferestre și uși PVC</p>
+<!-- ====== WIDGET ====== -->
+<div id="mg-chat-widget">
+
+    <!-- Chat Panel -->
+    <div id="mg-chat-panel">
+        <div class="mg-header">
+            <div class="mg-avatar">🪟</div>
+            <div class="mg-header-text">
+                <h3>SEPTO — METROGLASS</h3>
+                <p class="mg-online">Online acum</p>
+            </div>
         </div>
+
+        <div class="mg-messages" id="messages">
+            <div class="mg-msg bot">Bună ziua! Sunt SEPTO, asistentul virtual METROGLASS. 👋
+
+Vă pot ajuta să estimați rapid prețul pentru ferestre sau uși din PVC, aluminiu sau lemn stratificat.
+
+Ce vă interesează?</div>
+            <div class="mg-quick-actions" id="quickActions">
+                <button class="mg-quick-btn" onclick="sendQuick('Vreau preț pentru o fereastră')">🪟 Fereastră</button>
+                <button class="mg-quick-btn" onclick="sendQuick('Vreau preț pentru o ușă')">🚪 Ușă</button>
+                <button class="mg-quick-btn" onclick="sendQuick('Vreau o ofertă completă pentru casă')">🏠 Ofertă completă</button>
+                <button class="mg-quick-btn" onclick="sendQuick('Ce profile recomandați?')">💡 Recomandare</button>
+            </div>
+        </div>
+
+        <div class="mg-input-area">
+            <input type="text" id="userInput" placeholder="Scrieți mesajul..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="mg-send-btn" onclick="sendMessage()" id="sendBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <div class="mg-footer">Prețuri orientative • METROGLASS © 2026</div>
     </div>
 
-    <div class="chat-messages" id="messages">
-        <div class="msg bot">Bună ziua! Mă numesc SEPTO și sunt asistentul virtual METGLASS. 🪟
-
-Vă pot ajuta să calculați rapid un preț orientativ pentru ferestre sau uși PVC.
-
-Doriți să configurăm împreună un produs, sau aveți o întrebare specifică?</div>
-    </div>
-
-    <div class="chat-input">
-        <input type="text" id="userInput" placeholder="Scrieți mesajul dvs..." onkeypress="if(event.key==='Enter') sendMessage()">
-        <button onclick="sendMessage()" id="sendBtn">➤</button>
-    </div>
+    <!-- Floating Button -->
+    <button id="mg-chat-btn" onclick="toggleChat()">
+        <span class="badge">1</span>
+        <svg class="icon-chat" width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+    </button>
 </div>
 
 <script>
-// Istoricul conversatiei (trimis la fiecare request)
 let history = [];
+let chatOpen = false;
 
-// Mesajul initial al botului e deja in istoric
 history.push({
     role: "assistant",
-    content: "Bună ziua! Mă numesc SEPTO și sunt asistentul virtual METGLASS. 🪟\n\nVă pot ajuta să calculați rapid un preț orientativ pentru ferestre sau uși PVC.\n\nDoriți să configurăm împreună un produs, sau aveți o întrebare specifică?"
+    content: "Bună ziua! Sunt SEPTO, asistentul virtual METROGLASS. 👋\n\nVă pot ajuta să estimați rapid prețul pentru ferestre sau uși din PVC, aluminiu sau lemn stratificat.\n\nCe vă interesează?"
 });
+
+function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('mg-chat-panel').classList.toggle('visible', chatOpen);
+    document.getElementById('mg-chat-btn').classList.toggle('open', chatOpen);
+    if (chatOpen) {
+        setTimeout(() => document.getElementById('userInput').focus(), 350);
+    }
+}
+
+function sendQuick(text) {
+    document.getElementById('quickActions')?.remove();
+    document.getElementById('userInput').value = text;
+    sendMessage();
+}
 
 async function sendMessage() {
     const input = document.getElementById('userInput');
     const text = input.value.trim();
     if (!text) return;
 
-    // Afiseaza mesajul utilizatorului
     addMessage(text, 'user');
     input.value = '';
-
-    // Dezactiveaza butonul cat timp asteapta
     document.getElementById('sendBtn').disabled = true;
 
-    // Afiseaza "typing..."
-    const typingEl = addMessage('SEPTO scrie...', 'bot typing');
+    const typingEl = showTyping();
 
     try {
         const response = await fetch('/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: text,
-                history: history
-            })
+            body: JSON.stringify({ message: text, history: history })
         });
-
         const data = await response.json();
-
-        // Sterge "typing"
         typingEl.remove();
-
-        // Afiseaza raspunsul
         addMessage(data.response, 'bot');
-
-        // Actualizeaza istoricul
         history.push({ role: "user", content: text });
         history.push({ role: "assistant", content: data.response });
-
-        // Limiteaza istoricul la ultimele 20 mesaje (economie de tokeni)
-        if (history.length > 20) {
-            history = history.slice(-20);
-        }
-
+        if (history.length > 20) history = history.slice(-20);
     } catch (error) {
         typingEl.remove();
-        addMessage('Eroare de conexiune. Verificați că serverul rulează.', 'bot');
+        addMessage('Conexiune pierdută. Încercați din nou.', 'bot');
     }
 
     document.getElementById('sendBtn').disabled = false;
@@ -145,12 +445,31 @@ async function sendMessage() {
 
 function addMessage(text, type) {
     const div = document.createElement('div');
-    div.className = 'msg ' + type;
+    div.className = 'mg-msg ' + type;
     div.textContent = text;
     document.getElementById('messages').appendChild(div);
-    document.getElementById('messages').scrollTop = 99999;
+    scrollDown();
     return div;
 }
+
+function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'mg-typing';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    document.getElementById('messages').appendChild(div);
+    scrollDown();
+    return div;
+}
+
+function scrollDown() {
+    const el = document.getElementById('messages');
+    setTimeout(() => el.scrollTop = el.scrollHeight, 50);
+}
+
+// Auto-open chat after 3 seconds (optional — for demo)
+setTimeout(() => {
+    if (!chatOpen) toggleChat();
+}, 3000);
 </script>
 
 </body>
