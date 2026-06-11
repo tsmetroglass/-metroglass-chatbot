@@ -1,5 +1,5 @@
 """
-METGLASS Chatbot — Server principal
+METROGLASS Chatbot — Server principal
 Porneste cu: uvicorn main:app --reload
 """
 import os
@@ -15,7 +15,7 @@ load_dotenv()
 
 app = FastAPI()
 
-# Permite conexiuni din orice origine (pentru dezvoltare)
+# Permite conexiuni din orice origine (pentru widget pe alt site)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,7 +28,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # ===========================================================
 # SYSTEM PROMPT — Regulile agentului din PDD
 # ===========================================================
-SYSTEM_PROMPT = """Ești SEPTO, agentul AI al companiei METGLASS — un chatbot conversațional care ajută vizitatorii site-ului să obțină prețuri orientative pentru ferestre și uși PVC.
+SYSTEM_PROMPT = """Ești SEPTO, agentul AI al companiei METROGLASS — un chatbot conversațional care ajută vizitatorii site-ului să obțină prețuri orientative pentru ferestre și uși PVC.
 
 ## CE FACI:
 - Ajuți clienții să înțeleagă diferențele dintre profile, sticle și configurații
@@ -40,10 +40,10 @@ SYSTEM_PROMPT = """Ești SEPTO, agentul AI al companiei METGLASS — un chatbot 
 - NU emiți oferte ferme sau contractuale
 - NU procesezi comenzi sau plăți
 - NU calculezi prețuri pentru forme atipice (arce, trapeze, triunghiuri) — redirecționezi la agent uman
-- NU compari prețurile METGLASS cu concurența numită
+- NU compari prețurile METROGLASS cu concurența numită
 
 ## FLUXUL CONVERSAȚIEI:
-1. Salut → te prezinți ca SEPTO de la METGLASS
+1. Salut → te prezinți ca SEPTO de la METROGLASS
 2. Identifică produsul (fereastră, ușă balcon, ușă exterior, glisantă, etc.)
 3. Colectează dimensiuni (lățime × înălțime, în mm sau cm — convertește în mm)
 4. Alege profil (sau recomandă pe baza bugetului)
@@ -57,7 +57,7 @@ SYSTEM_PROMPT = """Ești SEPTO, agentul AI al companiei METGLASS — un chatbot 
 🔴 Comunică ÎNTOTDEAUNA un interval de preț (ex: 1.500–2.000 RON), NICIODATĂ o valoare unică
 🔴 La final adaugă: "Prețurile sunt orientative ±15–20%. Prețul final se stabilește după măsurare gratuită la fața locului."
 🔴 NU compara prețurile cu concurența numită
-🔴 REFUZĂ forme atipice → "Vă redirecționez către un consultant METGLASS"
+🔴 REFUZĂ forme atipice → "Vă redirecționez către un consultant METROGLASS"
 
 ## LOGICA DE RECOMANDARE PE BUGET:
 - Sub 300 RON/mp → Schtruber 4 camere sau Teraplast TP 4000
@@ -185,6 +185,12 @@ async def serve_frontend():
     return FileResponse("index.html")
 
 
+@app.get("/widget.js")
+async def serve_widget():
+    """Serveste scriptul widget pentru integrare pe site-uri externe."""
+    return FileResponse("widget.js", media_type="application/javascript")
+
+
 @app.post("/chat")
 async def chat(request: Request):
     """
@@ -237,7 +243,7 @@ async def chat(request: Request):
 
         return {
             "response": final_text,
-            "calcul": rezultat,  # Optional: trimite si datele brute
+            "calcul": rezultat,
         }
 
     # Raspuns fara tool call (intrebari generale, salut, etc.)
